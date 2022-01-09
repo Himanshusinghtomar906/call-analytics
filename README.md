@@ -38,9 +38,6 @@ start_time: 13/01/2021 23:59:08 to 14/01/2021 00:00:54
 Then two days and hours are taken into consideration i.e. 13/01/2021 , 14/01/2021 and 23,24 (or 12 AM).
 
 -----------
-Limitations:
-1. This program doesn't calculate the hour with highest duration of calls by differentiating the duration.
-
 Example:
 Start_time=06:56:01
 End_time=07:02:04
