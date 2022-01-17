@@ -1,78 +1,116 @@
-package com.company;
+package Callcenter;
+
 import java.sql.*;
-import java.time.DayOfWeek;
-import java.util.Calendar;
+import java.util.*;
 
-        class Analytics {
-        	public static void main (String[] args) {
-        		try{   
-				//connecting to the database
-        			Connection con=DriverManager.getConnection("jdbc:mysql://localhost:3306/sys","root","Hstomar@123");
-                                         
-				//root and password are respective username and password to the database used
-					Statement stmt=con.createStatement();
-                                  
-				//executing query to get details of highest day volume
-        			ResultSet r_highestDayVolume=stmt.executeQuery("select sr_no, count from days where count=(select max(count) from days);");
-                                 
-				//Loop if there are multiple highest values     
-        			while(r_highestDayVolume.next()) {
-                                        
-					//Printing the day of the week
-        				System.out.println("The day of the week when call volume is the highest: "+DayOfWeek.of(r_highestDayVolume.getInt(1)-1).toString());
-        			}
-                                         //Executing query to get details of highest hour volume 
-					  ResultSet r_highestHourVolume=stmt.executeQuery("select sr_no, count from hours where count=(select max(count) from hours);");
-
-					  while(r_highestHourVolume.next()) {
-						  int hr=r_highestHourVolume.getInt(1);
-					  System.out.println("The hour with the highest volume of calls is between "+hr+" - "+(hr+1)+" ");
-					}
-                                  
-				//query to get details of maximum duration of days and hours
-        			ResultSet r_duration=stmt.executeQuery("select * from records where duration=(select max(duration) from records);");
-
-        			while(r_duration.next()) {
-        				Calendar start_hour_duration=Calendar.getInstance();
-        				Calendar end_hour_duration=Calendar.getInstance();
-        				start_hour_duration.setTime(r_duration.getTime(3));
-        				end_hour_duration.setTime(r_duration.getTime(4));
-
-        				int start_duration_hr=start_hour_duration.get(Calendar.HOUR);
-        				int end_duration_hr=end_hour_duration.get(Calendar.HOUR);
-                                          
-					//to get maximum duration in hours
-        				if(start_hour_duration!=end_hour_duration) {
-
-        					System.out.println("The hour with the highest duration of calls is between "+start_duration_hr+" - "+(end_duration_hr+1) );
-        				}
-
-        				  Calendar start_day_duration=Calendar.getInstance();
-        				  Calendar end_day_duration=Calendar.getInstance();
-
-        				  start_day_duration.setTime(r_duration.getDate(3));
-        				  end_day_duration.setTime(r_duration.getDate(4));
-        				  int start_day=start_day_duration.get(Calendar.DAY_OF_WEEK);
-        				  int end_day=end_day_duration.get(Calendar.DAY_OF_WEEK);
-                                            
-					    //to get maximum duration of days
-                                              if(start_day!=end_day){  
-        					  System.out.println("The day of the week with the highest duration are: "+DayOfWeek.of(start_day-1).toString());
-
-					      }
-
-        			}
-				//terminating connection to the database
-        			con.close();
-
-        	}
-                          //catching if there is any exception 
-        		 catch(Exception e) {
-        		   System.out.println(e);
-        			}
-
-        		}
-        }
-
-
+public class CallCenter{
+	//database connection
+	
+	static Connection connection =null;
+	static String databaseName= "calldatabase";
+	static String url= "jdbc:mysql://localhost:3306/"+databaseName;
+	
+	static String username ="root";
+	static String password= "Password";
+	
+	public static void main(String[] args) throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException {
+		Class.forName("com.mysql.cj.jdbc.Driver");
+		try {
+			connection = DriverManager.getConnection(url,username, password);
+			System.out.println("    Connected   ");
+			System.out.println();
+			System.out.println("1.Hour of the day when the call volume is highest.");
+			System.out.println("2.Hour of the day when the calls are longest.");
+			System.out.println("3.Day of the week when the call volume is highest.");
+			System.out.println("4.Day of the week when the calls are longest.");
+			
+			
+			while(true) {
+			Scanner sc = new Scanner(System.in);
+			System.out.println();
+			System.out.print("choose the number : ");
+			int a= sc.nextInt();
+			System.out.println();
+			if(a==1) {
+				Statement stmt = null; 
+				stmt = connection.createStatement();
+				String sql = "select hour from (select date_format(Start_Time,'%H') as hour from calldatabase) calldatabase \r\n"
+						+ "group by hour \r\n"
+						+ "order by count(hour) desc limit 1;";
+				ResultSet rs = stmt.executeQuery(sql); 
+				ResultSetMetaData rsmd = rs.getMetaData();
+				int columnsNumber = rsmd.getColumnCount();
+				 while (rs.next()) {
+				       for (int i = 1; i <= columnsNumber; i++) {
+				           if (i > 1) System.out.print(",  ");
+				           String columnValue = rs.getString(i);
+				           System.out.print(columnValue + " " + rsmd.getColumnName(i));
+				       }
+				       System.out.println("");
+				   }
+			}
+			else if (a==2) {
+				Statement stmt = null; 
+				stmt = connection.createStatement();
+				String sql = "select hour from (select date_format(Start_Time,'%H') as hour,avg(Duration)  from calldatabase group by hour) calldatabase limit 1";
+				ResultSet rs = stmt.executeQuery(sql); 
+				ResultSetMetaData rsmd = rs.getMetaData();
+				int columnsNumber = rsmd.getColumnCount();
+				 while (rs.next()) {
+				       for (int i = 1; i <= columnsNumber; i++) {
+				           if (i > 1) System.out.print(",  ");
+				           String columnValue = rs.getString(i);
+				           System.out.print(columnValue + " " + rsmd.getColumnName(i));
+				       }
+				       System.out.println("");
+				   }
+			}
+			else if (a==3) {
+				Statement stmt = null; 
+				stmt = connection.createStatement();
+				String sql = "select week(date1) as Week,date1 from\r\n"
+						+ "( SELECT week (date1),date1,count(date1)FROM \r\n"
+						+ "( select date_format(Start_Time,'%Y-%m-%d') as date1 from calldatabase ) \r\n"
+						+ "calldatabase GROUP BY date1 ORDER BY count(date1) desc) calldatabase GROUP BY week(date1) ORDER BY count(date1) desc";
+				ResultSet rs = stmt.executeQuery(sql); 
+				ResultSetMetaData rsmd = rs.getMetaData();
+				int columnsNumber = rsmd.getColumnCount();
+				 while (rs.next()) {
+				       for (int i = 1; i <= columnsNumber; i++) {
+				           if (i > 1) System.out.print(",  ");
+				           String columnValue = rs.getString(i);
+				           System.out.print(columnValue + " " + rsmd.getColumnName(i));
+				       }
+				       System.out.println("");
+				   }
+			}
+			else if (a==4) {
+				Statement stmt = null; 
+				stmt = connection.createStatement();
+				String sql = "select week (date1) as Week, date1,max(dur) as Avgduration from \r\n"
+						+ "(select week(date1),date1,avg(Duration) as dur from (select date_format(Start_Time,'%Y-%m-%d') as date1,Duration from calldatabase) calldatabase group by date1) \r\n"
+						+ "calldatabase group by week(date1) order by dur desc";
+				ResultSet rs = stmt.executeQuery(sql); 
+				ResultSetMetaData rsmd = rs.getMetaData();
+				int columnsNumber = rsmd.getColumnCount();
+				 while (rs.next()) {
+				       for (int i = 1; i <= columnsNumber; i++) {
+				           if (i > 1) System.out.print(",  ");
+				           String columnValue = rs.getString(i);
+				           System.out.print(columnValue + " " + rsmd.getColumnName(i));
+				       }
+				       System.out.println("");
+				   }
+			}
+			else {
+				System.out.println("enter only Above given numbers.");
+			}
+			}
+			}
+		catch (Exception e) {
+			System.out.println(e);
+		}
+	
+	} 
+}
 
